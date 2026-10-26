@@ -55,12 +55,17 @@ class OrdersViewController: UIViewController,
 
         load()
         applySnapshot()
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
+        let addButton = UIBarButtonItem(
             systemItem: .add,
             primaryAction: UIAction { [weak self] _ in
                 self?.showAdd()
             }
         )
+        let surpriseButton = UIBarButtonItem(
+            image: UIImage(systemName: "dice.fill"),
+            primaryAction: UIAction { [weak self] _ in self?.surpriseMe() }
+        )
+        navigationItem.rightBarButtonItems = [addButton, surpriseButton]
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             title: "Clear",
             primaryAction: UIAction { [weak self] _ in self?.clearAll() }
@@ -101,6 +106,33 @@ class OrdersViewController: UIViewController,
         present(UINavigationController(rootViewController: addVC), animated: true)
     }
     
+    // "Can't decide what to dabao?" Let fate pick a Singapore classic
+    private static let menu: [(dish: String, emoji: String, isDrink: Bool)] = [
+        ("Laksa", "🍜", false), ("Chilli crab", "🦀", false), ("Char kway teow", "🍝", false),
+        ("Satay", "🍢", false), ("Nasi lemak", "🍛", false), ("Hokkien mee", "🍤", false),
+        ("Kaya toast", "🍞", false), ("Bak chor mee", "🥢", false),
+        ("Kopi O", "☕️", true), ("Milo dinosaur", "🦖", true), ("Teh tarik", "🫖", true),
+        ("Bandung", "🌹", true), ("Sugarcane juice", "🎋", true)
+    ]
+
+    private func surpriseMe() {
+        guard let pick = Self.menu.randomElement() else { return }
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        let alert = UIAlertController(
+            title: "\(pick.emoji) \(pick.dish)!",
+            message: "Fate says you should dabao this. Add it?",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Add", style: .default) { [weak self] _ in
+            self?.didAdd(Order(dish: pick.dish, quantity: 1, isDrink: pick.isDrink))
+        })
+        alert.addAction(UIAlertAction(title: "Roll again", style: .default) { [weak self] _ in
+            self?.surpriseMe()
+        })
+        alert.addAction(UIAlertAction(title: "Nah", style: .cancel))
+        present(alert, animated: true)
+    }
+
     func didAdd(_ order: Order) {
         // Merge duplicates instead of listing the same dish twice
         if let index = orders.firstIndex(where: {
